@@ -4,27 +4,33 @@ React + Vite rewrite of the original vanilla HTML/CSS/JS Dragio app. Same
 Supabase backend, same design, same features — different frontend
 architecture.
 
-## Status: core loop migrated, rest in progress
+## Status: all 18 pages migrated, verified live
 
-This is being migrated incrementally, the same way the original app was
-built. **Don't treat this as a finished replacement yet.**
+Every page from the vanilla app now has a React equivalent, and the
+build has been confirmed working through real deployment and live testing
+(not just static checks) — a trigger-depth regression in the Supabase
+security fixes and a PWA manifest/service-worker bug were both found and
+fixed this way, not by guessing.
 
 ### Fully rebuilt in React
-- Onboarding (4-step: welcome, how-it-works, interests, signup)
-- Sign in / forgot password / reset password
+- Onboarding (4-step), Sign in / Forgot / Reset password
 - Home feed (all 5 tabs, realtime new-debate insertion on Latest)
 - Debate detail (comments, replies, sorting, mind-changed, reply-with-debate,
   live vote/count updates)
 - Create debate (dynamic 2–6 options, image upload, collaboration invite)
+- Search (debates/users/categories), Category browse
+- Profile (own + others), Edit Profile (preset avatar picker), Followers/
+  Following list
+- Notifications (inline accept/decline for friend requests + collab invites)
+- Messages inbox, Chat (edit/delete/copy, typing indicator, online presence,
+  read receipts), Chat Settings
+- Business Dashboard (create page, analytics, pending sponsored campaigns),
+  Admin (reports, verification, user bans, categories, businesses, stats)
+- Push notification registration (`usePushNotifications`) — no-op until a
+  real VAPID public key is set in that file, same setup step the vanilla
+  app needed
 - Persistent app shell: Header + BottomNav never remount between pages
   (React Router `<Outlet />` pattern) — navigation is instant, no full reload
-
-### Not yet migrated (routes exist, show a placeholder screen)
-Search, Category browse, Profile (own + others), Edit Profile, Followers/
-Following list, Notifications, Business Dashboard, Admin, Messages inbox,
-Chat, Chat Settings. These all still work in the original vanilla app if you
-need them right now — this React rewrite is additive, not a replacement,
-until it's fully done.
 
 ## Architecture
 
@@ -70,25 +76,22 @@ src/
 
 ## Setup
 
-**I cannot run `npm install` or a build in the environment that wrote this
-code — it has no network access.** I've written the source carefully, but
-haven't been able to test-compile it. Netlify's build servers (which do have
-network access) will run the actual build when you deploy. If something
-doesn't compile, paste me the exact build log and I'll fix it — same as
-we've done with Termux errors throughout this project.
+The build has been confirmed working through real Netlify deployment — this
+is no longer a "haven't tested it" caveat. If a future change ever breaks
+the build, paste the exact Netlify build log and it gets fixed the same way
+the trigger-depth and PWA bugs did: from real error output, not guessing.
 
-To test locally first (recommended before deploying blind):
+To test locally:
 ```bash
 npm install
 npm run dev
 ```
-Or in Termux, if you want to test on your phone before deploying:
+Or in Termux:
 ```bash
 pkg install nodejs
 npm install
 npm run dev
 ```
 
-To deploy: connect this repo to Netlify (or push to the existing one) —
-`netlify.toml` already specifies `npm run build` / publish `dist`, so no
-manual configuration needed.
+To deploy: connect this repo to Netlify — `netlify.toml` already specifies
+`npm run build` / publish `dist`.

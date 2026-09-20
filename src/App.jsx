@@ -24,6 +24,8 @@ const Notifications = lazy(() => import("./pages/Notifications"));
 const Messages = lazy(() => import("./pages/Messages"));
 const Chat = lazy(() => import("./pages/Chat"));
 const ChatSettings = lazy(() => import("./pages/ChatSettings"));
+const BusinessDashboard = lazy(() => import("./pages/BusinessDashboard"));
+const Admin = lazy(() => import("./pages/Admin"));
 
 function PageFallback() {
   return <div className="skeleton" style={{ height: 200, marginTop: 20 }} />;
@@ -55,10 +57,8 @@ export default function App() {
             <Route path="/messages" element={<Messages />} />
             <Route path="/chat/:peerId" element={<Chat />} />
             <Route path="/chat-settings" element={<ChatSettings />} />
-
-            {/* Migrated in the next pass — routes wired now so nothing 404s */}
-            <Route path="/business-dashboard" element={<PageStub title="Business Dashboard" />} />
-            <Route path="/admin" element={<PageStub title="Admin" />} />
+            <Route path="/business-dashboard" element={<BusinessDashboard />} />
+            <Route path="/admin" element={<Admin />} />
           </Route>
 
           <Route path="*" element={<PageStub title="Not found" />} />

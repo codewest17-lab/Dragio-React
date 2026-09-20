@@ -1,5 +1,6 @@
 import { Outlet, Navigate } from "react-router-dom";
 import { useAuth } from "../context/AuthContext";
+import { usePushNotifications } from "../hooks/usePushNotifications";
 import Header from "../components/Header";
 import BottomNav from "../components/BottomNav";
 import PWAInstallBanner from "../components/PWAInstallBanner";
@@ -12,6 +13,7 @@ import PWAInstallBanner from "../components/PWAInstallBanner";
  */
 export default function AppLayout() {
   const { user, loading } = useAuth();
+  usePushNotifications(user?.id);
 
   if (loading) return <div className="screen centered-screen"><div className="skeleton" style={{ width: 60, height: 60, borderRadius: "50%" }} /></div>;
   if (!user) return <Navigate to="/signin" replace />;
