@@ -1,8 +1,7 @@
-import { useEffect } from "react";
+import { useState, useEffect, useCallback } from "react";
 import { supabase } from "../services/supabaseClient";
 
-// Replace with the public half of the VAPID key pair generated for this
-// project (see the original README → "Web Push setup"). Not secret.
+// The public half of the VAPID key pair for this project. Not secret.
 const VAPID_PUBLIC_KEY = "BFSCd9wfBVqg36r6c2k3m-EgE46bYznehWu18kkFEpgY8HlehWVIvt-xv0TjdSZbT4Ifav-SsItiKEOY8mlwgDI";
 
 function urlBase64ToUint8Array(base64String) {
@@ -13,22 +12,48 @@ function urlBase64ToUint8Array(base64String) {
 }
 
 /**
- * Registers the current device for Web Push, best-effort. Silently does
- * nothing if VAPID isn't configured yet, push isn't supported, or the user
- * hasn't granted permission — call it once per authenticated session (e.g.
- * from AppLayout) rather than gating any UI on it.
+ * Push notifications require an explicit user gesture to request
+ * permission — calling Notification.requestPermission() automatically on
+ * page load gets silently auto-blocked by Chrome's spam-prevention
+ * heuristics (the origin ends up permanently "Blocked" in site settings,
+ * with no dialog ever shown again). So this hook does NOT auto-run; it
+ * exposes the current permission state and a subscribe() function meant to
+ * be called from an onClick handler.
  */
 export function usePushNotifications(userId) {
+  const [permission, setPermission] = useState(
+    typeof Notification !== "undefined" ? Notification.permission : "unsupported"
+  );
+  const [subscribing, setSubscribing] = useState(false);
+  const [error, setError] = useState(null);
+
+  const isSupported = "serviceWorker" in navigator && "PushManager" in window && typeof Notification !== "undefined";
+  const isConfigured = !VAPID_PUBLIC_KEY.startsWith("REPLACE_WITH");
+
   useEffect(() => {
-    if (!userId) return;
-    if (!("serviceWorker" in navigator) || !("PushManager" in window)) return;
-    if (VAPID_PUBLIC_KEY.startsWith("REPLACE_WITH")) return; // not configured yet
+    if (isSupported) setPermission(Notification.permission);
+  }, [isSupported]);
 
-    let cancelled = false;
+  const subscribe = useCallback(async () => {
+    if (!userId || !isSupported || !isConfigured) return;
+    setError(null);
 
-    (async () => {
-      const permission = await Notification.requestPermission();
-      if (permission !== "granted" || cancelled) return;
+    if (Notification.permission === "denied") {
+      setError("Notifications are blocked for this site. You'll need to reset the permission in your browser's site settings before enabling this.");
+      return;
+    }
+
+    setSubscribing(true);
+    try {
+      // This MUST run inside the click handler that called subscribe() —
+      // that's what makes it a genuine user gesture instead of an
+      // automatic request.
+      const result = await Notification.requestPermission();
+      setPermission(result);
+      if (result !== "granted") {
+        setSubscribing(false);
+        return;
+      }
 
       const registration = await navigator.serviceWorker.ready;
       let subscription = await registration.pushManager.getSubscription();
@@ -41,12 +66,16 @@ export function usePushNotifications(userId) {
       }
 
       const json = subscription.toJSON();
-      await supabase.from("push_subscriptions").upsert(
+      const { error: dbError } = await supabase.from("push_subscriptions").upsert(
         { user_id: userId, endpoint: json.endpoint, p256dh: json.keys.p256dh, auth_key: json.keys.auth },
         { onConflict: "user_id,endpoint" }
       );
-    })().catch(() => {}); // best-effort — a denied permission or unsupported browser shouldn't break anything
+      if (dbError) throw dbError;
+    } catch (err) {
+      setError(err.message || "Couldn't enable notifications.");
+    }
+    setSubscribing(false);
+  }, [userId, isSupported, isConfigured]);
 
-    return () => { cancelled = true; };
-  }, [userId]);
+  return { permission, subscribe, subscribing, error, isSupported, isConfigured };
 }

@@ -2,12 +2,14 @@ import { useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
 import { supabase } from "../services/supabaseClient";
 import { useAuth } from "../context/AuthContext";
+import { usePushNotifications } from "../hooks/usePushNotifications";
 
 export default function ChatSettings() {
   const { user } = useAuth();
   const navigate = useNavigate();
   const [enabled, setEnabled] = useState(true);
   const [busy, setBusy] = useState(false);
+  const { permission, subscribe, subscribing, error, isSupported, isConfigured } = usePushNotifications(user?.id);
 
   useEffect(() => {
     if (!user) return;
@@ -19,9 +21,9 @@ export default function ChatSettings() {
   async function handleToggle() {
     const next = !enabled;
     setBusy(true);
-    const { error } = await supabase.from("profiles").update({ read_receipts_enabled: next }).eq("id", user.id);
+    const { error: toggleError } = await supabase.from("profiles").update({ read_receipts_enabled: next }).eq("id", user.id);
     setBusy(false);
-    if (!error) setEnabled(next);
+    if (!toggleError) setEnabled(next);
   }
 
   return (
@@ -43,6 +45,26 @@ export default function ChatSettings() {
           <span className="slider" />
         </label>
       </div>
+
+      {isSupported && isConfigured && (
+        <div className="setting-row">
+          <div className="info">
+            <div className="title">Push Notifications</div>
+            <div className="desc">
+              Get notified about messages, comments, and follows even when Dragio isn't open.
+              {permission === "denied" && " Currently blocked — you'll need to reset this in your browser's site settings before enabling it here."}
+            </div>
+            {error && <div className="field-error" style={{ marginTop: 6 }}>{error}</div>}
+          </div>
+          {permission === "granted" ? (
+            <span className="category-tag" style={{ color: "var(--success)" }}>Enabled</span>
+          ) : (
+            <button className="btn btn-primary" style={{ width: "auto", padding: "8px 16px", fontSize: 13 }} disabled={subscribing || permission === "denied"} onClick={subscribe}>
+              {subscribing ? "Enabling…" : "Enable"}
+            </button>
+          )}
+        </div>
+      )}
     </div>
   );
 }

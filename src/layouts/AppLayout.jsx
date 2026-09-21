@@ -1,6 +1,5 @@
 import { Outlet, Navigate } from "react-router-dom";
 import { useAuth } from "../context/AuthContext";
-import { usePushNotifications } from "../hooks/usePushNotifications";
 import Header from "../components/Header";
 import BottomNav from "../components/BottomNav";
 import PWAInstallBanner from "../components/PWAInstallBanner";
@@ -10,10 +9,13 @@ import PWAInstallBanner from "../components/PWAInstallBanner";
  * here and never unmount as the user navigates — only <Outlet /> (the
  * current page) swaps out, so there's no navigation flicker and no full
  * page reload, matching the "instant navigation" requirement.
+ *
+ * Push notification permission is NOT requested here automatically — that
+ * gets silently auto-blocked by Chrome (see usePushNotifications.js). It's
+ * requested explicitly from a button tap in Chat Settings instead.
  */
 export default function AppLayout() {
   const { user, loading } = useAuth();
-  usePushNotifications(user?.id);
 
   if (loading) return <div className="screen centered-screen"><div className="skeleton" style={{ width: 60, height: 60, borderRadius: "50%" }} /></div>;
   if (!user) return <Navigate to="/signin" replace />;
